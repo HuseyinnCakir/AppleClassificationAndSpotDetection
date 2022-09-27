@@ -1,0 +1,260 @@
+function varargout = untitled(varargin)
+% UNTITLED MATLAB code for untitled.fig
+%      UNTITLED, by itself, creates a new UNTITLED or raises the existing
+%      singleton*.
+%
+%      H = UNTITLED returns the handle to a new UNTITLED or the handle to
+%      the existing singleton*.
+%
+%      UNTITLED('CALLBACK',hObject,eventData,handles,...) calls the local
+%      function named CALLBACK in UNTITLED.M with the given input arguments.
+%
+%      UNTITLED('Property','Value',...) creates a new UNTITLED or raises the
+%      existing singleton*.  Starting from the left, property value pairs are
+%      applied to the GUI before untitled_OpeningFcn gets called.  An
+%      unrecognized property name or invalid value makes property application
+%      stop.  All inputs are passed to untitled_OpeningFcn via varargin.
+%
+%      *See GUI Options on GUIDE's Tools menu.  Choose "GUI allows only one
+%      instance to run (singleton)".
+%
+% See also: GUIDE, GUIDATA, GUIHANDLES
+
+% Edit the above text to modify the response to help untitled
+
+% Last Modified by GUIDE v2.5 23-May-2022 14:40:57
+
+% Begin initialization code - DO NOT EDIT
+gui_Singleton = 1;
+gui_State = struct('gui_Name',       mfilename, ...
+                   'gui_Singleton',  gui_Singleton, ...
+                   'gui_OpeningFcn', @untitled_OpeningFcn, ...
+                   'gui_OutputFcn',  @untitled_OutputFcn, ...
+                   'gui_LayoutFcn',  [] , ...
+                   'gui_Callback',   []);
+if nargin && ischar(varargin{1})
+    gui_State.gui_Callback = str2func(varargin{1});
+end
+
+if nargout
+    [varargout{1:nargout}] = gui_mainfcn(gui_State, varargin{:});
+else
+    gui_mainfcn(gui_State, varargin{:});
+end
+% End initialization code - DO NOT EDIT
+
+
+% --- Executes just before untitled is made visible.
+function untitled_OpeningFcn(hObject, eventdata, handles, varargin)
+% This function has no output args, see OutputFcn.
+% hObject    handle to figure
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+% varargin   command line arguments to untitled (see VARARGIN)
+
+% Choose default command line output for untitled
+handles.output = hObject;
+
+% Update handles structure
+guidata(hObject, handles);
+
+% UIWAIT makes untitled wait for user response (see UIRESUME)
+% uiwait(handles.figure1);
+
+
+% --- Outputs from this function are returned to the command line.
+function varargout = untitled_OutputFcn(hObject, eventdata, handles) 
+% varargout  cell array for returning output args (see VARARGOUT);
+% hObject    handle to figure
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Get default command line output from handles structure
+varargout{1} = handles.output;
+
+
+% --- Executes on button press in pushbutton1.
+function pushbutton1_Callback(hObject, eventdata, handles)
+
+[filename,pathname]=uigetfile({'*.*';'*.jpg';'*.png';});
+name=[pathname filename];
+img=imread(name);
+img=imresize(img,[300,300]);  % resmin boyutunun istenilen boyuta çevrilmesi.
+%figure,imshow(org_imgss);
+img2=imadjust(img,[0.35,0.90],[0,1],1.3); % imadjust fonksiyonu ile renk konstrastýnýn istenilen düzeye getirilmesi.
+%%subplot(2,3,1);imshow(img);title('Orijinal Görüntü');                 
+%subplot(2,3,2);imshow(img2);title('Kontrastý Deðiþtirilmiþ Görüntü'); 
+axes(handles.axes1);
+imshow(img);
+axes(handles.axes2);
+imshow(img2);
+grayimg=rgb2gray(img2); % renkli resmi gri seviyeye çevirir.
+%-------------------------------------------------
+a=grayimg;
+for i=1:300
+    for j=1:300
+        if(a(i,j)>=3);
+            break;
+        end
+        if(a(i,j)<3);
+           a(i,j)=255;
+        end
+    end
+end
+for k=1:300
+    for l=1:300
+        if(a(301-k,301-l)>=3);
+            break;
+        end
+        if(a(301-k,301-l)<3);
+           a(301-k,301-l)=255;
+        end
+    end
+end
+%------------------------------------------------
+img3=medfilt2(a); % medyan filter ile gürültüler yok edilir.
+%figure,imshow(img3);
+%subplot(2,3,3);imshow(img3);title('Gri Seviyeye Dönüþtürülmüþ Görüntü'); 
+axes(handles.axes3);
+imshow(img3);
+img4=imgaussfilt(img3,4); % gauss filter ile resme bulanýklýk katýlýr.
+kenar=edge(img4,'canny'); % canny kenar bulma algoritmasý kullanýlarak kenarlar bulunur.
+%subplot(2,3,4);imshow(kenar);title('Kenarlarý Çýkarýlmýþ Görüntü'); 
+axes(handles.axes4);
+imshow(kenar);
+sonhal=bwareaopen(kenar,101); % binary modda kucuk parcalarý yok eder. aþýndýrmaya benzer.
+%subplot(2,3,5);imshow(sonhal);title('Morfolojik Ýþlemler Uygulanmýþ Görüntü');
+axes(handles.axes5);
+imshow(sonhal);
+cc = bwconncomp(sonhal); % bwconncomp fonksiyonu baðlý komponentleri buldurur.
+stats1 = regionprops(cc,'all');  % regionprops fonksiyonu kullanýlarak bulunan bölgelerin özelliklerini çýkarýr.
+idx = find([stats1.Eccentricity] < 0.9990 ); % Eccentricity=Bölge ile ayný saniye anlarýna sahip 
+% olan elipsin eksantrikliði skaler olarak döndürülür. Eksantriklik, elipsin odaklarý ile ana eksen
+% uzunluðu arasýndaki mesafenin oranýdýr. Deðer 0 ile 1 arasýndadýr. (0 ve 1 dejenere durumlardýr.
+% Eksantrikliði 0 olan bir elips aslýnda bir dairedir, eksantrikliði 1 olan bir elips ise bir 
+% doðru parçasýdýr.). Eksantrikliki 0.9990 dan kuccuk olanlarý bul
+% demektir.Bunu yapmamým sebebi doðru parçalarýný yok etmek istememdir.
+BW2 = ismember(labelmatrix(cc),idx);  %Eksantrikliði 0.9990dan kucuk olanlarý cýkar.
+%figure,imshow(BW2); title('sonhal');
+[bwLabel,num]=bwlabel(BW2,8); % bulunan bölgeler etiketlenir.
+
+alg_stats=regionprops('table',bwLabel,'all'); % bulunan bölgelerin özellikleri çýkarýlýr.
+alg_enbuyukalan=max(alg_stats.Area); % en buyuk alan bulunur.Bu alan elmanýn dýþ þekli olacaktýr.
+alg_top_curuk_alan=0;
+x=1;
+c=[];
+yuvarlak_curuk_Sayisi=0;
+for i=1:num
+    b=alg_stats(i,1);
+    if(table2array(b) < alg_enbuyukalan ) %curuk alanlar bulunur.
+        c(x)=table2array(b); % curuk alanlar  daha sonra kullanýlmak amacýyla diziye aktarýlýr.
+        x=x+1;
+        if(table2array(alg_stats(i,7)) <0.75) % Eksantrikliði 0.75den kucuk olanlar yuvarlaga yakin cürük bölgeleri bize verir.
+            yuvarlak_curuk_Sayisi=yuvarlak_curuk_Sayisi+1; % kaç tane deðer oldugu toplanýr.
+        end
+        alg_top_curuk_alan=alg_top_curuk_alan + sum(table2array(b));%curuk alanlar toplanýr.
+    end
+end
+
+toplamalan=alg_top_curuk_alan+alg_enbuyukalan; % toplam alan bulunur.
+algcurukoran=(alg_top_curuk_alan*100)/toplamalan; % toplam alanýn çürük alana oraný bulunur. elmanýn
+%curuk oraný bulunur.
+
+value=[];
+if(algcurukoran >69) % oranýn 69 dan büyük olanlar direk sagliksiz elma olarak etiketlenir.
+    disp('sagliksiz elma');
+    value='sagliksiz elma';
+end
+if(algcurukoran>29 && algcurukoran<69) % 29 ile 69 arasýnda olanlar belirli hesaplamalar yapýlarak etiketleme iþlemi yapýlýr.
+  ss=max(c); % curuk alanlardan en buyugu bulunur.
+  oran=ss/alg_enbuyukalan; % þeklin oranýna bölünür .
+  oran2=(oran*80.7)/100; %85 % bulunan oranýn %80i alýnýr.
+  oran3=oran2+(yuvarlak_curuk_Sayisi*7.5)/100; %6 %bu orana yuvarlak_curuk_sayisi oranýda belirli oranda eklenir. 
+  if(num>=5)
+      oran3=oran3+(num/66);
+  else
+  oran3=oran3+(num/100); 
+  end
+  %60 % bulunan bölge sayýsý da belirli oranda eklenerek toplam oran bulunur.
+  oran4=power(algcurukoran,oran3); % curuk oranýnýn üstü olacak þekilde yazýlýr ve genel bi oran bulunur.
+  if(oran4>3.249) % bu oran belirli degerden yüksek cýkarsa sagliksiz elma olarak etiketlenir.
+     disp('sagliksiz elma');
+     value='sagliksiz elma';
+  else
+      disp('saglikli elma');
+      value='saglikli elma';
+  end
+end
+
+  if(algcurukoran <29 && algcurukoran >21 ) % curuk oraný 29dan kucuk ise
+      if(yuvarlak_curuk_Sayisi>0)
+          idx = find([alg_stats.Eccentricity] < 0.75 & [alg_stats.Area]<alg_enbuyukalan);% yuvarlak curuk varmý diye bakýlýr.
+          alan=alg_stats(idx,1);
+          oran=table2array(alan)/alg_enbuyukalan; % yuvarlak curuk oranýnýn elmanýn þekline oraný bulunur.
+          if(oran >0.1934) %  0.12 eger bu oran 0.1934 dan buyukse sagliksiz olarak etiketlenir.
+               disp('sagliksiz elma');
+               value='sagliksiz elma';
+          else
+              disp('saglikli elma');
+              value='saglikli elma';
+      end
+  else
+    disp('saglikli elma');
+    value='saglikli elma';
+      end
+  end
+  if(algcurukoran <21 ) % curuk oraný 29dan kucuk ise
+      if(yuvarlak_curuk_Sayisi>0)
+          idx = find([alg_stats.Eccentricity] < 0.75 & [alg_stats.Area]<alg_enbuyukalan);% yuvarlak curuk varmý diye bakýlýr.
+          alan=alg_stats(idx,1);
+          oran=table2array(alan)/alg_enbuyukalan; % yuvarlak curuk oranýnýn elmanýn þekline oraný bulunur.
+          if(oran >0.22) % eger bu oran 0.29 dan buyukse sagliksiz olarak etiketlenir.
+               disp('sagliksiz elma');
+               value='sagliksiz elma';
+          else
+              disp('saglikli elma');
+              value='saglikli elma';
+      end
+  else
+    disp('saglikli elma');
+    value='saglikli elma';
+      end
+  end
+  
+  % ------------------------------------------------------------------------------
+  
+  
+  
+  
+  % ELMALARIN  REGÝONPROPS'UN BOUNDÝNGBOX ÖZELLÝÐÝ KULLANILARAK  TAM KONUMUNUN  DÝKDÖRTGEN
+  % ÝÇÝNE ALINMASI VE SAGLÝKLÝ MÝ SAGLÝKSÝZ MÝ OLDUGUNUN YAZILMASI.
+  
+  
+img5=imadjust(img,[0.55,0.56],[0,1]);
+grayimg=rgb2gray(img5);
+grayimg=histeq(grayimg); % histeq komutu histogramý eþitleyerek kontrastý artýrýr.
+img6=medfilt2(grayimg);
+org_imgss=imbinarize(img6); % imbinarize komutu ile elmanýn þeklinin çýkarýlmasý.
+org_imgss=~org_imgss; 
+org_imgss=bwareaopen(org_imgss, 150); % 150den kucuk alanlarýn temizlenmesi.
+[bwLabel,num2]=bwlabel(org_imgss,8); % bulunan alanlarýn etiketlenmesi.
+%figure,imshow(org_imgss);
+stats2 = regionprops('table',bwLabel,'Area','Centroid','BoundingBox'); % özellik çýkarýmý.
+if(num2>1) % birden fazla alan çýkar ise, en buyuk alan bizim elma þeklimiz olacaktýrç
+    org_enbuyukalan=max(stats2.Area);
+idx2 = find([stats2.Area] == org_enbuyukalan );
+%subplot(2,3,6);imshow(img);title('Elma Tespiti Ve Etiketlenmesi');
+axes(handles.axes6);
+imshow(img);
+position=reshape(stats2(idx2,2).Centroid,1,[]); % tex fonksiyonu ile yazacaðýmýz yazýnýn konumunun istenilen forma sokulmasý
+rectangle('Position',stats2(idx2,3).BoundingBox,'EdgeColor','b','LineWidth',2); % elmanýn dikdörtgen içine alýnmasý.
+text(position(1),position(2),value, 'Color', 'b','FontSize',10); % etiketinin gösterilmesi.
+else
+   %subplot(2,3,6);imshow(img);title('Elma Tespiti Ve Etiketlenmesi');
+   axes(handles.axes6);
+imshow(img);
+position=reshape(stats2.Centroid,1,[]);
+rectangle('Position',stats2.BoundingBox,'EdgeColor','b','LineWidth',2);
+text(position(1)-40,position(2),value, 'Color', 'b','FontSize',10);
+end
+ 
